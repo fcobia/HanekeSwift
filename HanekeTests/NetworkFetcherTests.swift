@@ -13,7 +13,7 @@ import OHHTTPStubs
 
 class NetworkFetcherTests: XCTestCase {
 
-    let URL = NSURL(string: "http://haneke.io/image.jpg")!
+    let URL = Foundation.URL(string: "http://haneke.io/image.jpg")!
     var sut : NetworkFetcher<UIImage>!
     
     override func setUp() {
@@ -35,14 +35,14 @@ class NetworkFetcherTests: XCTestCase {
     }
     
     func testFetchImage_Success() {
-        let image = UIImage.imageWithColor(UIColor.greenColor())
+        let image = UIImage.imageWithColor(UIColor.green())
         OHHTTPStubs.stubRequestsPassingTest({ _ in
             return true
         }, withStubResponse: { _ in
             let data = UIImagePNGRepresentation(image)
             return OHHTTPStubsResponse(data: data!, statusCode: 200, headers:nil)
         })
-        let expectation = self.expectationWithDescription(self.name!)
+        let expectation = self.expectation(withDescription: self.name!)
         
         sut.fetch(failure: { _ in
             XCTFail("expected success")
@@ -53,7 +53,7 @@ class NetworkFetcherTests: XCTestCase {
             expectation.fulfill()
         }
         
-        self.waitForExpectationsWithTimeout(1, handler: nil)
+        self.waitForExpectations(withTimeout: 1, handler: nil)
     }
     
     func testFetchImage_Success_StatusCode200() {
@@ -87,11 +87,11 @@ class NetworkFetcherTests: XCTestCase {
             let data = NSData()
             return OHHTTPStubsResponse(data: data, statusCode: 200, headers:nil)
         })
-        let expectation = self.expectationWithDescription(self.name!)
+        let expectation = self.expectation(withDescription: self.name!)
         
         sut.fetch(failure: {
             XCTAssertEqual($0!.domain, HanekeGlobals.Domain)
-            XCTAssertEqual($0!.code, HanekeGlobals.NetworkFetcher.ErrorCode.InvalidData.rawValue)
+            XCTAssertEqual($0!.code, HanekeGlobals.NetworkFetcher.ErrorCode.invalidData.rawValue)
             XCTAssertNotNil($0!.localizedDescription)
             expectation.fulfill()
         }) { _ in
@@ -99,7 +99,7 @@ class NetworkFetcherTests: XCTestCase {
             expectation.fulfill()
         }
         
-        self.waitForExpectationsWithTimeout(100000, handler: nil)
+        self.waitForExpectations(withTimeout: 100000, handler: nil)
     }
     
     func testFetchImage_Failure_MissingData() {
@@ -109,11 +109,11 @@ class NetworkFetcherTests: XCTestCase {
             let data = NSData.dataWithLength(100)
             return OHHTTPStubsResponse(data: data, statusCode: 200, headers:["Content-Length":String(data.length * 2)])
         })
-        let expectation = self.expectationWithDescription(self.name!)
+        let expectation = self.expectation(withDescription: self.name!)
         
         sut.fetch(failure: {
             XCTAssertEqual($0!.domain, HanekeGlobals.Domain)
-            XCTAssertEqual($0!.code, HanekeGlobals.NetworkFetcher.ErrorCode.MissingData.rawValue)
+            XCTAssertEqual($0!.code, HanekeGlobals.NetworkFetcher.ErrorCode.missingData.rawValue)
             XCTAssertNotNil($0!.localizedDescription)
             expectation.fulfill()
         }) { _ in
@@ -121,11 +121,11 @@ class NetworkFetcherTests: XCTestCase {
             expectation.fulfill()
         }
         
-        self.waitForExpectationsWithTimeout(1, handler: nil)
+        self.waitForExpectations(withTimeout: 1, handler: nil)
     }
     
     func testCancelFetch() {
-        let image = UIImage.imageWithColor(UIColor.greenColor())
+        let image = UIImage.imageWithColor(UIColor.green())
         OHHTTPStubs.stubRequestsPassingTest({ _ in
             return true
         }, withStubResponse: { _ in
@@ -148,20 +148,20 @@ class NetworkFetcherTests: XCTestCase {
     }
     
     func testSession() {
-        XCTAssertEqual(sut.session, NSURLSession.sharedSession())
+        XCTAssertEqual(sut.session, URLSession.shared)
     }
     
     // MARK: Private
 
-    private func testFetchImageSuccessWithStatusCode(statusCode : Int32) {
-        let image = UIImage.imageWithColor(UIColor.greenColor())
+    private func testFetchImageSuccessWithStatusCode(_ statusCode : Int32) {
+        let image = UIImage.imageWithColor(UIColor.green())
         OHHTTPStubs.stubRequestsPassingTest({ _ in
             return true
             }, withStubResponse: { _ in
                 let data = UIImagePNGRepresentation(image)
                 return OHHTTPStubsResponse(data: data!, statusCode: statusCode, headers:nil)
         })
-        let expectation = self.expectationWithDescription(self.name!)
+        let expectation = self.expectation(withDescription: self.name!)
         sut.cancelFetch()
 
         sut.fetch(failure: { _ in
@@ -173,21 +173,21 @@ class NetworkFetcherTests: XCTestCase {
                 expectation.fulfill()
         }
 
-        self.waitForExpectationsWithTimeout(1, handler: nil)
+        self.waitForExpectations(withTimeout: 1, handler: nil)
     }
 
-    private func testFetchImageFailureWithInvalidStatusCode(statusCode : Int32) {
+    private func testFetchImageFailureWithInvalidStatusCode(_ statusCode : Int32) {
         OHHTTPStubs.stubRequestsPassingTest({ _ in
             return true
         }, withStubResponse: { _ in
             let data = NSData.dataWithLength(100)
             return OHHTTPStubsResponse(data: data, statusCode: statusCode, headers:nil)
         })
-        let expectation = self.expectationWithDescription(self.name!)
+        let expectation = self.expectation(withDescription: self.name!)
         
         sut.fetch(failure: {
             XCTAssertEqual($0!.domain, HanekeGlobals.Domain)
-            XCTAssertEqual($0!.code, HanekeGlobals.NetworkFetcher.ErrorCode.InvalidStatusCode.rawValue)
+            XCTAssertEqual($0!.code, HanekeGlobals.NetworkFetcher.ErrorCode.invalidStatusCode.rawValue)
             XCTAssertNotNil($0!.localizedDescription)
             expectation.fulfill()
         }) { _ in
@@ -195,20 +195,20 @@ class NetworkFetcherTests: XCTestCase {
             expectation.fulfill()
         }
         
-        self.waitForExpectationsWithTimeout(1, handler: nil)        
+        self.waitForExpectations(withTimeout: 1, handler: nil)        
     }
     
     // MARK: Cache extension
     
     func testCacheFetch_Success() {
-        let data = NSData.dataWithLength(1)
+        let data = Data.dataWithLength(1)
         OHHTTPStubs.stubRequestsPassingTest({ _ in
             return true
             }, withStubResponse: { _ in
                 return OHHTTPStubsResponse(data: data, statusCode: 200, headers:nil)
         })
-        let expectation = self.expectationWithDescription(self.name!)
-        let cache = Cache<NSData>(name: self.name!)
+        let expectation = self.expectation(withDescription: self.name!)
+        let cache = Cache<Data>(name: self.name!)
 
         cache.fetch(URL: URL, failure: {_ in
             XCTFail("expected success")
@@ -218,20 +218,20 @@ class NetworkFetcherTests: XCTestCase {
             expectation.fulfill()
         }
         
-        self.waitForExpectationsWithTimeout(1, handler: nil)
+        self.waitForExpectations(withTimeout: 1, handler: nil)
         
         cache.removeAll()
     }
     
     func testCacheFetch_Failure() {
-        let data = NSData.dataWithLength(1)
+        let data = Data.dataWithLength(1)
         OHHTTPStubs.stubRequestsPassingTest({ _ in
             return true
             }, withStubResponse: { _ in
                 return OHHTTPStubsResponse(data: data, statusCode: 404, headers:nil)
         })
-        let expectation = self.expectationWithDescription(self.name!)
-        let cache = Cache<NSData>(name: self.name!)
+        let expectation = self.expectation(withDescription: self.name!)
+        let cache = Cache<Data>(name: self.name!)
         
         cache.fetch(URL: URL, failure: {_ in
             expectation.fulfill()
@@ -240,21 +240,21 @@ class NetworkFetcherTests: XCTestCase {
             expectation.fulfill()
         }
         
-        self.waitForExpectationsWithTimeout(1, handler: nil)
+        self.waitForExpectations(withTimeout: 1, handler: nil)
         
         cache.removeAll()
     }
     
     func testCacheFetch_WithFormat() {
-        let data = NSData.dataWithLength(1)
+        let data = Data.dataWithLength(1)
         OHHTTPStubs.stubRequestsPassingTest({ _ in
             return true
             }, withStubResponse: { _ in
                 return OHHTTPStubsResponse(data: data, statusCode: 404, headers:nil)
         })
-        let expectation = self.expectationWithDescription(self.name!)
-        let cache = Cache<NSData>(name: self.name!)
-        let format = Format<NSData>(name: self.name!)
+        let expectation = self.expectation(withDescription: self.name!)
+        let cache = Cache<Data>(name: self.name!)
+        let format = Format<Data>(name: self.name!)
         cache.addFormat(format)
 
         cache.fetch(URL: URL, formatName: format.name, failure: {_ in
@@ -264,7 +264,7 @@ class NetworkFetcherTests: XCTestCase {
             expectation.fulfill()
         }
         
-        self.waitForExpectationsWithTimeout(1, handler: nil)
+        self.waitForExpectations(withTimeout: 1, handler: nil)
         
         cache.removeAll()
     }
