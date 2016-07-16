@@ -19,15 +19,12 @@ extension UIImage {
     }
 
     func hnk_hasAlpha() -> Bool {
+		
         let alpha = self.cgImage?.alphaInfo
-        switch alpha {
-        case .first, .last, .premultipliedFirst, .premultipliedLast, .alphaOnly:
-            return true
-        case .none, .noneSkipFirst, .noneSkipLast:
-            return false
-        }
+
+		return alpha == .first || alpha == .last || alpha == .premultipliedFirst || alpha == .premultipliedLast || alpha == .alphaOnly
     }
-    
+  
     func hnk_data(compressionQuality: Float = 1.0) -> Data! {
         let hasAlpha = self.hnk_hasAlpha()
         let data = hasAlpha ? UIImagePNGRepresentation(self) : UIImageJPEGRepresentation(self, CGFloat(compressionQuality))
@@ -41,16 +38,19 @@ extension UIImage {
         
         // See: http://stackoverflow.com/questions/23723564/which-cgimagealphainfo-should-we-use
         var bitmapInfo = originalBitmapInfo
-        switch (alphaInfo) {
-        case .none:
-            let rawBitmapInfoWithoutAlpha = (bitmapInfo?.rawValue)! & ~CGBitmapInfo.alphaInfoMask.rawValue
-            let rawBitmapInfo = rawBitmapInfoWithoutAlpha | CGImageAlphaInfo.noneSkipFirst.rawValue
-            bitmapInfo = CGBitmapInfo(rawValue: rawBitmapInfo)
-        case .premultipliedFirst, .premultipliedLast, .noneSkipFirst, .noneSkipLast:
-            break
-        case .alphaOnly, .last, .first: // Unsupported
-            return self
-        }
+
+		if alphaInfo == .none {
+			let rawBitmapInfoWithoutAlpha = (bitmapInfo?.rawValue)! & ~CGBitmapInfo.alphaInfoMask.rawValue
+			let rawBitmapInfo = rawBitmapInfoWithoutAlpha | CGImageAlphaInfo.noneSkipFirst.rawValue
+			bitmapInfo = CGBitmapInfo(rawValue: rawBitmapInfo)
+		}
+		else if alphaInfo == .premultipliedFirst || alphaInfo == .premultipliedLast || alphaInfo == .noneSkipFirst || alphaInfo == .noneSkipLast {
+			// Do nothing
+		}
+		else {
+			// Unsupported
+			return self
+		}
         
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let pixelSize = CGSize(width: self.size.width * self.scale, height: self.size.height * self.scale)
