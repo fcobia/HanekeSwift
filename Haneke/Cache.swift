@@ -10,11 +10,11 @@ import UIKit
 
 // Used to add T to NSCache
 class ObjectWrapper : NSObject {
-    let value: Any
-    
-    init(value: Any) {
-        self.value = value
-    }
+	let wrappedValue: Any
+	
+	init(value: Any) {
+		self.wrappedValue = value
+	}
 }
 
 extension HanekeGlobals {
@@ -78,7 +78,7 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
     public func fetch(key: String, formatName: String = HanekeGlobals.Cache.OriginalFormatName, failure fail : Fetch<T>.Failer? = nil, success succeed : Fetch<T>.Succeeder? = nil) -> Fetch<T> {
         let fetch = Cache.buildFetch(failure: fail, success: succeed)
         if let (format, memoryCache, diskCache) = self.formats[formatName] {
-            if let wrapper = memoryCache.object(forKey: key) as? ObjectWrapper, let result = wrapper.value as? T {
+			if let wrapper = memoryCache.object(forKey: key), let result = wrapper.wrappedValue as? T {
                 fetch.succeed(result)
                 diskCache.updateAccessDate(self.dataFromValue(result, format: format), key: key)
                 return fetch
@@ -102,7 +102,7 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
     public func fetch(fetcher : Fetcher<T>, formatName: String = HanekeGlobals.Cache.OriginalFormatName, failure fail : Fetch<T>.Failer? = nil, success succeed : Fetch<T>.Succeeder? = nil) -> Fetch<T> {
         let key = fetcher.key
         let fetch = Cache.buildFetch(failure: fail, success: succeed)
-        self.fetch(key: key, formatName: formatName, failure: { error in
+        let _ = self.fetch(key: key, formatName: formatName, failure: { error in
             if error?.code == HanekeGlobals.Cache.ErrorCode.formatNotFound.rawValue {
                 fetch.fail(error)
             }
@@ -138,9 +138,9 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
                 group.leave()
             }
         }
-        DispatchQueue.global(attributes: DispatchQueue.GlobalAttributes.qosDefault).async {
+        DispatchQueue.global(qos: .default).async {
             let timeout = DispatchTime.now() + Double(Int64(60 * NSEC_PER_SEC)) / Double(NSEC_PER_SEC)
-            if group.wait(timeout: timeout) != 0 {
+            if group.wait(timeout: timeout) != .success {
                 Log.error("removeAll timed out waiting for disk caches")
             }
             let path = self.cachePath
@@ -177,12 +177,12 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
     
     // MARK: Formats
 
-    var formats : [String : (Format<T>, Foundation.Cache, DiskCache)] = [:]
+    var formats : [String : (Format<T>, Foundation.NSCache<NSString,ObjectWrapper>, DiskCache)] = [:]
     
     public func addFormat(_ format : Format<T>) {
         let name = format.name
         let formatPath = self.formatPath(formatName: name)
-        let memoryCache = Foundation.Cache()
+        let memoryCache = Foundation.NSCache<NSString,ObjectWrapper>()
         let diskCache = DiskCache(path: formatPath, capacity : format.diskCapacity)
         self.formats[name] = (format, memoryCache, diskCache)
     }
@@ -214,7 +214,7 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
         return value.asData()
     }
     
-    private func fetchFromDiskCache(_ diskCache : DiskCache, key: String, memoryCache : Foundation.Cache, failure fail : ((NSError?) -> ())?, success succeed : (T) -> ()) {
+    private func fetchFromDiskCache(_ diskCache : DiskCache, key: String, memoryCache : Foundation.NSCache<NSString,ObjectWrapper>, failure fail : ((NSError?) -> ())?, success succeed : (T) -> ()) {
         diskCache.fetchData(key: key, failure: { error in
             if let block = fail {
                 if (error?.code == NSFileReadNoSuchFileError) {
@@ -227,7 +227,7 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
                 }
             }
         }) { data in
-            DispatchQueue.global(attributes: DispatchQueue.GlobalAttributes.qosDefault).async(execute: {
+            DispatchQueue.global(qos: .default).async(execute: {
                 let value = T.convertFromData(data)
                 if let value = value {
                     let descompressedValue = self.decompressedImageIfNeeded(value)
@@ -254,7 +254,7 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
         if format.isIdentity && !(value is UIImage) {
             succeed(value)
         } else {
-            DispatchQueue.global(attributes: DispatchQueue.GlobalAttributes.qosDefault).async {
+            DispatchQueue.global(qos: .default).async {
                 var formatted = format.apply(value)
                 
                 if let formattedImage = formatted as? UIImage {
@@ -282,10 +282,10 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
     private class func buildFetch(failure fail : Fetch<T>.Failer? = nil, success succeed : Fetch<T>.Succeeder? = nil) -> Fetch<T> {
         let fetch = Fetch<T>()
         if let succeed = succeed {
-            fetch.onSuccess(succeed)
+            let _ = fetch.onSuccess(succeed)
         }
         if let fail = fail {
-            fetch.onFailure(fail)
+            let _ = fetch.onFailure(fail)
         }
         return fetch
     }
@@ -293,7 +293,7 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
     // MARK: Convenience fetch
     // Ideally we would put each of these in the respective fetcher file as a Cache extension. Unfortunately, this fails to link when using the framework in a project as of Xcode 6.1.
     
-    public func fetch(key: String, @autoclosure(escaping) value getValue : () -> T.Result, formatName: String = HanekeGlobals.Cache.OriginalFormatName, success succeed : Fetch<T>.Succeeder? = nil) -> Fetch<T> {
+    public func fetch(key: String, value getValue : @autoclosure(escaping) () -> T.Result, formatName: String = HanekeGlobals.Cache.OriginalFormatName, success succeed : Fetch<T>.Succeeder? = nil) -> Fetch<T> {
         let fetcher = SimpleFetcher<T>(key: key, value: getValue)
         return self.fetch(fetcher: fetcher, formatName: formatName, success: succeed)
     }

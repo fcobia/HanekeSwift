@@ -45,7 +45,7 @@ public class DiskCache {
         })
     }
     
-    public func setData(@autoclosure(escaping) _ getData: () -> Data?, key: String) {
+    public func setData( _ getData: @autoclosure(escaping) () -> Data?, key: String) {
         cacheQueue.async(execute: {
             if let data = getData() {
                 self.setDataSync(data, key: key)
@@ -63,7 +63,7 @@ public class DiskCache {
                 DispatchQueue.main.async {
                     succeed(data)
                 }
-                self.updateDiskAccessDateAtPath(path)
+                let _ = self.updateDiskAccessDateAtPath(path)
             } catch {
                 if let block = fail {
                     DispatchQueue.main.async {
@@ -107,7 +107,7 @@ public class DiskCache {
         })
     }
 
-    public func updateAccessDate(@autoclosure(escaping) _ getData: () -> Data?, key: String) {
+    public func updateAccessDate( _ getData: @autoclosure(escaping) () -> Data?, key: String) {
         cacheQueue.async(execute: {
             let path = self.pathForKey(key)
             let fileManager = FileManager.default
@@ -156,13 +156,12 @@ public class DiskCache {
         
         let fileManager = FileManager.default
         let cachePath = self.path
-        fileManager.enumerateContentsOfDirectoryAtPath(cachePath, orderedByProperty: URLResourceKey.contentModificationDateKey, ascending: true) { (URL : Foundation.URL, _, stop : inout Bool) -> Void in
+        fileManager.enumerateContentsOfDirectoryAtPath(cachePath, orderedByProperty: URLResourceKey.contentModificationDateKey.rawValue, ascending: true) { (URL : Foundation.URL, _, stop : inout Bool) -> Void in
             
-            if let path = URL.path {
-                self.removeFileAtPath(path)
+            let path = URL.path
+			self.removeFileAtPath(path)
 
-                stop = self.size <= self.capacity
-            }
+			stop = self.size <= self.capacity
         }
     }
     

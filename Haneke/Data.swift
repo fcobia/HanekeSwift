@@ -17,10 +17,10 @@ public protocol DataConvertible {
 
 public protocol DataRepresentable {
     
-    func asData() -> Data!
+    func asData() -> Data
 }
 
-private let imageSync = Lock()
+private let imageSync = NSLock()
 
 extension UIImage : DataConvertible, DataRepresentable {
     
@@ -39,11 +39,11 @@ extension UIImage : DataConvertible, DataRepresentable {
         return image
     }
     
-    public func asData() -> Data! {
+    public func asData() -> Data {
         return self.hnk_data() as Data!
     }
     
-    private static let scale = UIScreen.main().scale
+    private static let scale = UIScreen.main.scale
     
 }
 
@@ -56,8 +56,8 @@ extension String : DataConvertible, DataRepresentable {
         return string as? Result
     }
     
-    public func asData() -> Data! {
-        return self.data(using: String.Encoding.utf8)
+    public func asData() -> Data {
+        return self.data(using: String.Encoding.utf8)!
     }
     
 }
@@ -70,7 +70,7 @@ extension Data : DataConvertible, DataRepresentable {
         return data
     }
     
-    public func asData() -> Data! {
+    public func asData() -> Data {
         return self
     }
     
@@ -99,12 +99,12 @@ public enum JSON : DataConvertible, DataRepresentable {
         }
     }
     
-    public func asData() -> Data! {
+    public func asData() -> Data {
         switch (self) {
         case .Dictionary(let dictionary):
-            return try? JSONSerialization.data(withJSONObject: dictionary, options: JSONSerialization.WritingOptions())
+            return try! JSONSerialization.data(withJSONObject: dictionary, options: JSONSerialization.WritingOptions())
         case .Array(let array):
-            return try? JSONSerialization.data(withJSONObject: array, options: JSONSerialization.WritingOptions())
+            return try! JSONSerialization.data(withJSONObject: array, options: JSONSerialization.WritingOptions())
         }
     }
     

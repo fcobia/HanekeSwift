@@ -19,13 +19,10 @@ extension UIImage {
     }
 
     func hnk_hasAlpha() -> Bool {
-        let alpha = self.cgImage?.alphaInfo
-        switch alpha {
-        case .first, .last, .premultipliedFirst, .premultipliedLast, .alphaOnly:
-            return true
-        case .none, .noneSkipFirst, .noneSkipLast:
-            return false
-        }
+		
+		let alpha = self.cgImage?.alphaInfo
+		
+		return alpha == .first || alpha == .last || alpha == .premultipliedFirst || alpha == .premultipliedLast || alpha == .alphaOnly
     }
     
     func hnk_data(compressionQuality: Float = 1.0) -> Data! {
@@ -41,16 +38,18 @@ extension UIImage {
         
         // See: http://stackoverflow.com/questions/23723564/which-cgimagealphainfo-should-we-use
         var bitmapInfo = originalBitmapInfo
-        switch (alphaInfo) {
-        case .none:
-            let rawBitmapInfoWithoutAlpha = (bitmapInfo?.rawValue)! & ~CGBitmapInfo.alphaInfoMask.rawValue
-            let rawBitmapInfo = rawBitmapInfoWithoutAlpha | CGImageAlphaInfo.noneSkipFirst.rawValue
-            bitmapInfo = CGBitmapInfo(rawValue: rawBitmapInfo)
-        case .premultipliedFirst, .premultipliedLast, .noneSkipFirst, .noneSkipLast:
-            break
-        case .alphaOnly, .last, .first: // Unsupported
-            return self
-        }
+		if alphaInfo == .none {
+			let rawBitmapInfoWithoutAlpha = (bitmapInfo?.rawValue)! & ~CGBitmapInfo.alphaInfoMask.rawValue
+			let rawBitmapInfo = rawBitmapInfoWithoutAlpha | CGImageAlphaInfo.noneSkipFirst.rawValue
+			bitmapInfo = CGBitmapInfo(rawValue: rawBitmapInfo)
+		}
+		else if alphaInfo == .premultipliedFirst || alphaInfo == .premultipliedLast || alphaInfo == .noneSkipFirst || alphaInfo == .noneSkipLast {
+			// Do nothing
+		}
+		else {
+			// Unsupported
+			return self
+		}
         
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let pixelSize = CGSize(width: self.size.width * self.scale, height: self.size.height * self.scale)
@@ -62,8 +61,8 @@ extension UIImage {
         UIGraphicsPushContext(context)
         
         // Flip coordinate system. See: http://stackoverflow.com/questions/506622/cgcontextdrawimage-draws-image-upside-down-when-passed-uiimage-cgimage
-        context.translate(x: 0, y: pixelSize.height)
-        context.scale(x: 1.0, y: -1.0)
+        context.translateBy(x: 0, y: pixelSize.height)
+        context.scaleBy(x: 1.0, y: -1.0)
         
         // UIImage and drawInRect takes into account image orientation, unlike CGContextDrawImage.
         self.draw(in: imageRect)
@@ -73,7 +72,7 @@ extension UIImage {
             return self
         }
         
-        let scale = UIScreen.main().scale
+        let scale = UIScreen.main.scale
         let image = UIImage(cgImage: decompressedImageRef, scale:scale, orientation:UIImageOrientation.up)
         return image
     }

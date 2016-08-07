@@ -27,24 +27,24 @@ import Foundation
 func arrayOfBytes<T>(_ value:T, length:Int? = nil) -> [UInt8] {
     let totalBytes = length ?? (sizeofValue(value) * 8)
     
-    let valuePointer = UnsafeMutablePointer<T>(allocatingCapacity: 1)
+    let valuePointer = UnsafeMutablePointer<T>.allocate(capacity: 1)
     valuePointer.pointee = value
     
     let bytesPointer = UnsafeMutablePointer<UInt8>(valuePointer)
     var bytes = [UInt8](repeating: 0, count: totalBytes)
-    for j in 0..<min(sizeof(T),totalBytes) {
+    for j in 0..<min(sizeof(T.self),totalBytes) {
         bytes[totalBytes - 1 - j] = (bytesPointer + j).pointee
     }
     
     valuePointer.deinitialize()
-    valuePointer.deallocateCapacity(1)
+    valuePointer.deallocate(capacity: 1)
     
     return bytes
 }
 
 extension Int {
     /** Array of bytes with optional padding (little-endian) */
-    public func bytes(_ totalBytes: Int = sizeof(Int)) -> [UInt8] {
+    public func bytes(_ totalBytes: Int = sizeof(Int.self)) -> [UInt8] {
         return arrayOfBytes(self, length: totalBytes)
     }
     
@@ -69,7 +69,7 @@ class HashBase {
     
     /** Common part for hash calculation. Prepare header data. */
     func prepare(_ len: Int = 64) -> NSMutableData {
-        let tmpMessage: NSMutableData = NSData(data: self.message) as Data as Data
+		let tmpMessage: NSMutableData = NSMutableData(data: self.message)
         
         // Step 1. Append Padding Bits
         tmpMessage.appendBytes([0x80]) // append one bit (UInt8 with one bit) to message
@@ -81,7 +81,7 @@ class HashBase {
             counter += 1
             msgLength += 1
         }
-        let bufZeros = UnsafeMutablePointer<UInt8>(calloc(counter, sizeof(UInt8)))
+        let bufZeros = UnsafeMutablePointer<UInt8>(calloc(counter, sizeof(UInt8.self)))
         tmpMessage.append(bufZeros!, length: counter)
         
         return tmpMessage
@@ -145,7 +145,7 @@ class MD5 : HashBase {
             
             // break chunk into sixteen 32-bit words M[j], 0 ≤ j ≤ 15
             var M:[UInt32] = [UInt32](repeating: 0, count: 16)
-            let range = NSRange(location:0, length: M.count * sizeof(UInt32))
+            let range = NSRange(location:0, length: M.count * sizeof(UInt32.self))
             (chunk as NSData).getBytes(UnsafeMutablePointer<Void>(M), range: range)
             
             // Initialize hash value for this chunk:
