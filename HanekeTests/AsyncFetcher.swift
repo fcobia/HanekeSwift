@@ -20,8 +20,8 @@ class AsyncFetcher<T : DataConvertible> : Fetcher<T> {
 
     override func fetch(failure fail: ((NSError?) -> ()), success succeed: (T.Result) -> ()) {
         let value = getValue()
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
-            dispatch_async(dispatch_get_main_queue()) {
+        DispatchQueue.global(attributes: DispatchQueue.GlobalAttributes.qosDefault).async {
+            DispatchQueue.main.async {
                 succeed(value)
             }
         }
