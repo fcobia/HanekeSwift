@@ -320,7 +320,7 @@ class CacheTests: XCTestCase {
     func testFetchOnFailure_WithSyncFailingFetcher_ExpectAsyncFailure() {
         
         let fetcher = FailFetcher<Data>(key: self.name!)
-        fetcher.error = NSError(domain: "test", code: 376, userInfo: nil)
+        fetcher.error = Error(domain: "test", code: 376, userInfo: nil)
         let expectation = self.expectation(withDescription: self.name!)
         
         let fetch = sut.fetch(fetcher: fetcher).onFailure { error in
@@ -654,19 +654,19 @@ class ImageCacheTests: XCTestCase {
 
 class FailFetcher<T : DataConvertible> : Fetcher<T> {
     
-    var error : NSError!
+    var error : Error!
     
     override init(key: String) {
         super.init(key: key)
     }
     
-    override func fetch(failure fail : ((NSError?) -> ()), success succeed : (T.Result) -> ()) {
+    override func fetch(failure fail : ((Error?) -> ()), success succeed : (T.Result) -> ()) {
         fail(error)
     }
     
 }
 
-class CacheMock<T : DataConvertible where T.Result == T, T : DataRepresentable> : Cache<T> {
+class CacheMock<T : DataConvertible> : Cache<T> where T.Result == T, T : DataRepresentable {
     
     var expectation : XCTestExpectation?
     

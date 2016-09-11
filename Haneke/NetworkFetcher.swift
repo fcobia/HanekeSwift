@@ -42,7 +42,7 @@ public class NetworkFetcher<T : DataConvertible> : Fetcher<T> {
     
     // MARK: Fetcher
     
-    public override func fetch(failure fail : ((NSError?) -> ()), success succeed : (T.Result) -> ()) {
+    public override func fetch(failure fail : @escaping ((Error?) -> ()), success succeed : @escaping (T.Result) -> ()) {
         self.cancelled = false
         self.task = self.session.dataTask(with: self.URL) {[weak self] (data, response, error) -> Void in
             if let strongSelf = self {
@@ -59,16 +59,16 @@ public class NetworkFetcher<T : DataConvertible> : Fetcher<T> {
     
     // MARK: Private
     
-    private func onReceiveData(_ data: Data!, response: URLResponse!, error: NSError!, failure fail: ((NSError?) -> ()), success succeed: (T.Result) -> ()) {
+    private func onReceiveData(_ data: Data!, response: URLResponse!, error: Error!, failure fail: @escaping ((Error?) -> ()), success succeed: @escaping (T.Result) -> ()) {
 
         if cancelled { return }
         
         let URL = self.URL
         
         if let error = error {
-            if (error.domain == NSURLErrorDomain && error.code == NSURLErrorCancelled) { return }
+            if (error._domain == NSURLErrorDomain && error._code == NSURLErrorCancelled) { return }
             
-            Log.debug("Request \(URL.absoluteString) failed", error)
+            Log.debug("Request \(URL.absoluteString) failed", error as Error?)
             DispatchQueue.main.async(execute: { fail(error) })
             return
         }
@@ -97,7 +97,7 @@ public class NetworkFetcher<T : DataConvertible> : Fetcher<T> {
 
     }
     
-    private func failWithCode(_ code: HanekeGlobals.NetworkFetcher.ErrorCode, localizedDescription: String, failure fail: ((NSError?) -> ())) {
+    private func failWithCode(_ code: HanekeGlobals.NetworkFetcher.ErrorCode, localizedDescription: String, failure fail: @escaping ((Error?) -> ())) {
         let error = errorWithCode(code.rawValue, description: localizedDescription)
         Log.debug(localizedDescription, error)
         DispatchQueue.main.async { fail(error) }

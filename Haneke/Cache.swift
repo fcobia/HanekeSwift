@@ -33,7 +33,7 @@ extension HanekeGlobals {
     
 }
 
-public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable> {
+public class Cache<T: DataConvertible> where T.Result == T, T : DataRepresentable {
     
     let name: String
     
@@ -65,7 +65,7 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
         if let (format, memoryCache, diskCache) = self.formats[formatName] {
             self.format(value: value, format: format) { formattedValue in
                 let wrapper = ObjectWrapper(value: formattedValue)
-                memoryCache.setObject(wrapper, forKey: key)
+                memoryCache.setObject(wrapper, forKey: key as NSString)
                 // Value data is sent as @autoclosure to be executed in the disk cache queue.
                 diskCache.setData(self.dataFromValue(formattedValue, format: format), key: key)
                 succeed?(formattedValue)
@@ -78,7 +78,7 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
     public func fetch(key: String, formatName: String = HanekeGlobals.Cache.OriginalFormatName, failure fail : Fetch<T>.Failer? = nil, success succeed : Fetch<T>.Succeeder? = nil) -> Fetch<T> {
         let fetch = Cache.buildFetch(failure: fail, success: succeed)
         if let (format, memoryCache, diskCache) = self.formats[formatName] {
-			if let wrapper = memoryCache.object(forKey: key), let result = wrapper.wrappedValue as? T {
+			if let wrapper = memoryCache.object(forKey: key as NSString), let result = wrapper.wrappedValue as? T {
                 fetch.succeed(result)
                 diskCache.updateAccessDate(self.dataFromValue(result, format: format), key: key)
                 return fetch
@@ -103,7 +103,7 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
         let key = fetcher.key
         let fetch = Cache.buildFetch(failure: fail, success: succeed)
         let _ = self.fetch(key: key, formatName: formatName, failure: { error in
-            if error?.code == HanekeGlobals.Cache.ErrorCode.formatNotFound.rawValue {
+            if error?._code == HanekeGlobals.Cache.ErrorCode.formatNotFound.rawValue {
                 fetch.fail(error)
             }
             
@@ -124,7 +124,7 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
 
     public func remove(key: String, formatName: String = HanekeGlobals.Cache.OriginalFormatName) {
         if let (_, memoryCache, diskCache) = self.formats[formatName] {
-            memoryCache.removeObject(forKey: key)
+            memoryCache.removeObject(forKey: key as NSString)
             diskCache.removeData(key)
         }
     }
@@ -214,10 +214,10 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
         return value.asData()
     }
     
-    private func fetchFromDiskCache(_ diskCache : DiskCache, key: String, memoryCache : Foundation.NSCache<NSString,ObjectWrapper>, failure fail : ((NSError?) -> ())?, success succeed : (T) -> ()) {
+    private func fetchFromDiskCache(_ diskCache : DiskCache, key: String, memoryCache : Foundation.NSCache<NSString,ObjectWrapper>, failure fail : ((Error?) -> ())?, success succeed : @escaping (T) -> ()) {
         diskCache.fetchData(key: key, failure: { error in
             if let block = fail {
-                if (error?.code == NSFileReadNoSuchFileError) {
+                if (error?._code == NSFileReadNoSuchFileError) {
                     let localizedFormat = NSLocalizedString("Object not found for key %@", comment: "Error description")
                     let description = String(format:localizedFormat, key)
                     let error = errorWithCode(HanekeGlobals.Cache.ErrorCode.objectNotFound.rawValue, description: description)
@@ -234,14 +234,14 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
                     DispatchQueue.main.async(execute: {
                         succeed(descompressedValue)
                         let wrapper = ObjectWrapper(value: descompressedValue)
-                        memoryCache.setObject(wrapper, forKey: key)
+                        memoryCache.setObject(wrapper, forKey: key as NSString)
                     })
                 }
             })
         }
     }
     
-    private func fetchAndSet(_ fetcher : Fetcher<T>, format : Format<T>, failure fail : ((NSError?) -> ())?, success succeed : (T) -> ()) {
+    private func fetchAndSet(_ fetcher : Fetcher<T>, format : Format<T>, failure fail : ((Error?) -> ())?, success succeed : @escaping (T) -> ()) {
         fetcher.fetch(failure: { error in
             let _ = fail?(error)
         }) { value in
@@ -249,7 +249,7 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
         }
     }
     
-    private func format(value : T, format : Format<T>, success succeed : (T) -> ()) {
+    private func format(value : T, format : Format<T>, success succeed : @escaping (T) -> ()) {
         // HACK: Ideally Cache shouldn't treat images differently but I can't think of any other way of doing this that doesn't complicate the API for other types.
         if format.isIdentity && !(value is UIImage) {
             succeed(value)
@@ -293,7 +293,7 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
     // MARK: Convenience fetch
     // Ideally we would put each of these in the respective fetcher file as a Cache extension. Unfortunately, this fails to link when using the framework in a project as of Xcode 6.1.
     
-    public func fetch(key: String, value getValue : @autoclosure(escaping) () -> T.Result, formatName: String = HanekeGlobals.Cache.OriginalFormatName, success succeed : Fetch<T>.Succeeder? = nil) -> Fetch<T> {
+    public func fetch(key: String, value getValue : @autoclosure @escaping () -> T.Result, formatName: String = HanekeGlobals.Cache.OriginalFormatName, success succeed : Fetch<T>.Succeeder? = nil) -> Fetch<T> {
         let fetcher = SimpleFetcher<T>(key: key, value: getValue)
         return self.fetch(fetcher: fetcher, formatName: formatName, success: succeed)
     }

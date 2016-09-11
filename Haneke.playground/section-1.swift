@@ -6,7 +6,7 @@ func example1() {
     let cache = Cache<JSON>(name: "github")
     let URL = NSURL(string: "https://api.github.com/users/haneke")!
     
-    cache.fetch(URL: URL).onSuccess { JSON in
+    cache.fetch(URL: URL as URL).onSuccess { JSON in
         print(JSON.dictionary?["bio"])
     }
 }
@@ -16,7 +16,7 @@ func example2() {
     let imageView = UIImageView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
     let URL = NSURL(string: "https://avatars.githubusercontent.com/u/8600207?v=2")!
 
-    imageView.hnk_setImageFromURL(URL)
+    imageView.hnk_setImageFromURL(URL as URL)
 }
 
 /// Set and fetch data from the shared data cache
@@ -27,6 +27,6 @@ func example3() {
     cache.set(value: data, key: "secret")
     
     cache.fetch(key: "secret").onSuccess { data in
-        print(NSString(data:data, encoding:NSUTF8StringEncoding))
+        print(NSString(data:data, encoding:String.Encoding.utf8.rawValue))
     }
 }

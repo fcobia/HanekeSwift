@@ -18,7 +18,7 @@ class AsyncFetcher<T : DataConvertible> : Fetcher<T> {
         super.init(key: key)
     }
 
-    override func fetch(failure fail: ((NSError?) -> ()), success succeed: (T.Result) -> ()) {
+    override func fetch(failure fail: ((Error?) -> ()), success succeed: (T.Result) -> ()) {
         let value = getValue()
         DispatchQueue.global(attributes: DispatchQueue.GlobalAttributes.qosDefault).async {
             DispatchQueue.main.async {

@@ -54,7 +54,7 @@ extension FileManager {
             }
 
         } catch {
-            Log.error("Failed to list directory", error as NSError)
+            Log.error("Failed to list directory", error as Error)
         }
     }
 
